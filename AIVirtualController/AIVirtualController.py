@@ -97,12 +97,38 @@ cap = cv2.VideoCapture(0)
 
 cap.set(3, Wcam)
 cap.set(4, Hcam)
+
 #########################################################################################################################################
 vol = 0
 volBar = 400
 volPer = 0
 
 detected_fingersRight = [0, 1, 1, 1, 1]
+
+#Hand Number Module
+#########################################################################################################################################
+folder_path_HandNum = r"F:\Github\AI_Virtual_Controller\Images\FingerNumberImage"
+# Read images
+myList = os.listdir(folder_path_HandNum)
+overlaylist = []
+
+for imPath in myList:
+
+    imagePath = os.path.join(folder_path_HandNum, imPath)
+
+    image = cv2.imread(imagePath)
+
+    if image is not None:
+
+        h, w, c = image.shape
+        
+        image = cv2.resize(image, (w // 2, h // 2))
+
+        overlaylist.append(image)
+
+tipIds = [4, 8, 12, 16, 20]
+
+totalFingers = 0
 
 #########################################################################################################################################
 
@@ -150,7 +176,8 @@ while True:
 
         #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
 
-        #Volume control with both hands
+        #########################################################################################################################################
+        #Volume control with both hands Module
         if lengthLeft < 30 and lengthRight < 30:
 
             while lengthLeft < 30:
@@ -229,9 +256,9 @@ while True:
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
 
-
+        #########################################################################################################################################
+        #Hand Number Module
         elif lengthLeft < 30 and fingersRight == detected_fingersRight: 
-            #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
             while lengthLeft < 30:
 
                 success, img = cap.read()
@@ -242,7 +269,35 @@ while True:
                 
                 img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
 
-                print("Left: ", int(lengthLeft))
+                if len(lmListRight) != 0:
+                        Fingers = []
+
+                        # Thumb
+                        if lmListRight[tipIds[0]][1] < lmListRight[tipIds[0] - 1][1]:
+                            Fingers.append(1)
+                        else:
+                            Fingers.append(0)
+                
+                        #  4 Fingers
+                        for id in range(1, 5):
+                            
+                            if lmListRight[tipIds[id]][2] < lmListRight[tipIds[id] - 2][2]:
+
+                                Fingers.append(1)
+                            else:
+                                Fingers.append(0)
+
+                        totalFingers = Fingers.count(1)
+                        print(totalFingers)
+
+                        # Put overlay image
+                if len(overlaylist) > 0 :
+                    overlay = overlaylist[totalFingers ]
+                    h, w, c = overlay.shape
+                    frame_h, frame_w, _ = img.shape
+                    img[0:h, frame_w - w:frame_w] = overlay
+                        
+                #pTime = FPS(img, pTime)                
 
                 cv2.imshow("Image", img)                  
             
@@ -251,7 +306,6 @@ while True:
                     break
 
         elif lengthLeft > 1000:
-            #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
             while lengthLeft < 30:
 
                 success, img = cap.read()
