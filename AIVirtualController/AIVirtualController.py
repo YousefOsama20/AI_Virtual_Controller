@@ -10,7 +10,7 @@ from Lib import library
 # Camera size
 Wcam, Hcam = 640, 480
 
-# Hand detector
+# Hand detector (detects up to 2 hands)
 detector = library.HandDetector()
 
 # FPS variable
@@ -46,23 +46,36 @@ cap.set(4, Hcam)
 while True:
 
     success, img = cap.read()
-    img =cv2.flip( img, 1)
+    img = cv2.flip(img, 1)
 
     if not success:
-        break 
+        break
 
-    # Detect hand
+    # Detect hands
     img = detector.findHands(img)
 
-    lmList = detector.findPosition(img)
-    
-    if len(lmList) != 0:
-        x1, y1 = lmList[8][1], lmList[8][2]  
-        x2, y2 = lmList[12][1], lmList[12][2]
+    # Find positions for both hands
+    lmListRight = detector.findPosition(img, handType="Right")
+    lmListLeft = detector.findPosition(img, handType="Left")
 
-        fingers = detector.fingersUp()
+    # Get which hands are currently detected
+    detectedHands = detector.getDetectedHands()
 
-        print(fingers)
+    # --- Right Hand ---
+    if len(lmListRight) != 0:
+        x1, y1 = lmListRight[8][1], lmListRight[8][2]
+        x2, y2 = lmListRight[12][1], lmListRight[12][2]
+
+        fingersRight = detector.fingersUp(handType="Right")
+        print(f"Right: {fingersRight}")
+
+    # --- Left Hand ---
+    if len(lmListLeft) != 0:
+        x1, y1 = lmListLeft[8][1], lmListLeft[8][2]
+        x2, y2 = lmListLeft[12][1], lmListLeft[12][2]
+
+        fingersLeft = detector.fingersUp(handType="Left")
+        print(f"Left:  {fingersLeft}")
 
     pTime = FPS(img, pTime)
 
