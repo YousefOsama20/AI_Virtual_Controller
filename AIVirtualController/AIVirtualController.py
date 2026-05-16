@@ -42,7 +42,6 @@ maxVol = volRange[1]
 # FPS variable
 pTime = 0
 
-
 def FPS(img, pTime=0):
 
     cTime = time.time()
@@ -76,6 +75,28 @@ def drawHandVolumeTask(img, x1, y1, x2, y2):
     cv2.circle(img, (cx, cy), 10,
                 (255, 0, 0), cv2.FILLED)
 
+def start ():
+                    
+    success, img = cap.read()
+    img = cv2.flip(img, 1)
+
+    if not success:
+        break
+    img = detector.findHands(img)
+
+    # Find positions for both hands
+    lmListRight = detector.findPosition(img, handType="Right")
+    lmListLeft = detector.findPosition(img, handType="Left")
+
+    xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
+    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+
+    lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+
+    cv2.imshow("Image", img)
+
+    return img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2
+
 # Webcam
 cap = cv2.VideoCapture(0)
 
@@ -85,6 +106,9 @@ cap.set(4, Hcam)
 vol = 0
 volBar = 400
 volPer = 0
+
+detected_fingersRight = [0, 1, 1, 1, 1]
+
 #########################################################################################################################################
 
 while True:
@@ -106,14 +130,14 @@ while True:
     detectedHands = detector.getDetectedHands()
 
     # --- Right Hand ---
-    ''''if len(lmListRight) != 0:
+    if len(lmListRight) != 0:
         fingersRight = detector.fingersUp(handType="Right")
-        print(f"Right: {fingersRight}")
+        #print(f"Right: {fingersRight}")
 
     # --- Left Hand ---
     if len(lmListLeft) != 0:
         fingersLeft = detector.fingersUp(handType="Left")
-        print(f"Left:  {fingersLeft}")'''
+        #print(f"Left:  {fingersLeft}")
 
 
     if len(lmListRight) != 0 and len(lmListLeft) != 0:
@@ -219,12 +243,70 @@ while True:
                     # Quit
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
+                 
+        elif lengthLeft < 30 and fingersRight == detected_fingersRight: 
+            #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
+            while lengthLeft < 30:
                 
-        #elif:
-            
+
+                success, img = cap.read()
+                img = cv2.flip(img, 1)
+
+                if not success:
+                    break
+                img = detector.findHands(img)
+
+                # Find positions for both hands
+                lmListRight = detector.findPosition(img, handType="Right")
+                lmListLeft = detector.findPosition(img, handType="Left")
+
+                xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
+                xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+
+                lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+
+                print("Left: ", int(lengthLeft))
+
+                cv2.imshow("Image", img)
+                    
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+
+        elif lengthLeft > 1000:
+            #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
+            while lengthLeft > 30:
+                
+
+                success, img = cap.read()
+                img = cv2.flip(img, 1)
+
+                if not success:
+                    break
+                img = detector.findHands(img)
+
+                # Find positions for both hands
+                lmListRight = detector.findPosition(img, handType="Right")
+                lmListLeft = detector.findPosition(img, handType="Left")
+
+                xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
+                xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+
+                lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+
+                print("Left: ", int(lengthLeft))
+
+                cv2.imshow("Image", img)
+                    
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
         else:
-            print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
+            pass
+            #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
+
 
 
     pTime = FPS(img, pTime)
