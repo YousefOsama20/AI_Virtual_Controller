@@ -75,25 +75,20 @@ def drawHandVolumeTask(img, x1, y1, x2, y2):
     cv2.circle(img, (cx, cy), 10,
                 (255, 0, 0), cv2.FILLED)
 
-def start ():
-                    
-    success, img = cap.read()
-    img = cv2.flip(img, 1)
+def start (img):
 
-    if not success:
-        break
     img = detector.findHands(img)
 
     # Find positions for both hands
     lmListRight = detector.findPosition(img, handType="Right")
     lmListLeft = detector.findPosition(img, handType="Left")
 
-    xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
-    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+    if len(lmListRight) != 0 and len(lmListLeft) != 0:
+        # Left Hand
+        xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
+        xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
 
     lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
-
-    cv2.imshow("Image", img)
 
     return img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2
 
@@ -155,37 +150,27 @@ while True:
 
         #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
 
-
+        #Volume control with both hands
         if lengthLeft < 30 and lengthRight < 30:
 
             while lengthLeft < 30:
-                
 
                 success, img = cap.read()
                 img = cv2.flip(img, 1)
 
                 if not success:
                     break
-                
-                # Detect hands
-                img = detector.findHands(img)
 
-                # Find positions for both hands
-                lmListRight = detector.findPosition(img, handType="Right")
-                lmListLeft = detector.findPosition(img, handType="Left")
+                # Detect hands
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
 
                 if len(lmListRight) != 0 and len(lmListLeft) != 0:
                     # Right Hand                    
                     xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
                     xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
 
-                    # Left Hand
-                    xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
-                    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
-
                     # Distance between fingers
                     lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
-                    lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
                     #draw Hand Volume Task for both hands
                     drawHandVolumeTask(img, xR1, yR1, xR2, yR2)
@@ -243,62 +228,44 @@ while True:
                     # Quit
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
-                 
+
+
         elif lengthLeft < 30 and fingersRight == detected_fingersRight: 
             #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
             while lengthLeft < 30:
-                
 
                 success, img = cap.read()
                 img = cv2.flip(img, 1)
 
                 if not success:
                     break
-                img = detector.findHands(img)
-
-                # Find positions for both hands
-                lmListRight = detector.findPosition(img, handType="Right")
-                lmListLeft = detector.findPosition(img, handType="Left")
-
-                xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
-                xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
-
-                lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+                
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
 
                 print("Left: ", int(lengthLeft))
 
-                cv2.imshow("Image", img)
-                    
+                cv2.imshow("Image", img)                  
+            
                 # Quit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
-
         elif lengthLeft > 1000:
             #print("Left: ", int(lengthLeft), "Right: ", int(fingersRight))
-            while lengthLeft > 30:
-                
+            while lengthLeft < 30:
 
                 success, img = cap.read()
                 img = cv2.flip(img, 1)
 
                 if not success:
                     break
-                img = detector.findHands(img)
-
-                # Find positions for both hands
-                lmListRight = detector.findPosition(img, handType="Right")
-                lmListLeft = detector.findPosition(img, handType="Left")
-
-                xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
-                xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
-
-                lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+                
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
 
                 print("Left: ", int(lengthLeft))
 
-                cv2.imshow("Image", img)
-                    
+                cv2.imshow("Image", img)                  
+            
                 # Quit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
