@@ -14,7 +14,7 @@ from pycaw.pycaw import AudioUtilities
 from pycaw.api.endpointvolume import IAudioEndpointVolume
 
 # Camera size
-Wcam, Hcam = 640, 480
+Wcam, Hcam = 640, 480 # 1280, 720
 
 # Hand detector (detects up to 2 hands)
 detector = library.HandDetector()
@@ -117,24 +117,24 @@ while True:
 
 
     if len(lmListRight) != 0 and len(lmListLeft) != 0:
-        # Left Hand
-        x1, y1 = lmListRight[4][1], lmListRight[4][2]
-        x2, y2 = lmListRight[8][1], lmListRight[8][2]
-
         # Right Hand
-        x3, y3 = lmListLeft[4][1], lmListLeft[4][2]
-        x4, y4 = lmListLeft[8][1], lmListLeft[8][2]
+        xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
+        xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
+
+        # Left Hand
+        xL1, yL1 = lmListLeft[4][1], lmListLeft[4][2]
+        xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
 
         # Distance between fingers
-        lengthRight = np.hypot(x2 - x1, y2 - y1)
-        lengthLeft = np.hypot(x4 - x3, y4 - y3)
+        lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
+        lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
         #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
 
 
-        if lengthLeft < 25 and lengthRight < 25:
+        if lengthLeft < 30 and lengthRight < 30:
 
-            while lengthLeft < 25:
+            while lengthLeft < 30:
                 
 
                 success, img = cap.read()
@@ -151,44 +151,45 @@ while True:
                 lmListLeft = detector.findPosition(img, handType="Left")
 
                 if len(lmListRight) != 0 and len(lmListLeft) != 0:
-                    # Left Hand
-                    x1, y1 = lmListRight[4][1], lmListRight[4][2]
-                    x2, y2 = lmListRight[8][1], lmListRight[8][2]
+                    # Right Hand                    
+                    xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
+                    xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
 
-                    # Right Hand
-                    x3, y3 = lmListLeft[4][1], lmListLeft[4][2]
-                    x4, y4 = lmListLeft[8][1], lmListLeft[8][2]
+                    # Left Hand
+                    xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
+                    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
 
                     # Distance between fingers
-                    lengthRight = np.hypot(x2 - x1, y2 - y1)
-                    lengthLeft = np.hypot(x4 - x3, y4 - y3)
+                    lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
+                    lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
                     #draw Hand Volume Task for both hands
-                    drawHandVolumeTask(img, x1, y1, x2, y2)
-                    drawHandVolumeTask(img, x3, y3, x4, y4)
+                    drawHandVolumeTask(img, xR1, yR1, xR2, yR2)
+                    drawHandVolumeTask(img, xL1, yL1, xL2, yL2)
 
                     # Distance between fingers
-                    length = np.hypot(x2 - x1, y2 - y1)
+                    lengthR = np.hypot(xR2 - xR1, yR2 - yR1)
+                    
 
                     volume.SetMasterVolumeLevel(vol, None)
 
                     vol = np.interp(
-                        lengthLeft,
+                        lengthRight,
                         [20, 150],
                         [minVol, maxVol]
                     )
 
-                    volBar = np.interp(length, [20, 150], [400, 150])
-                    volPer = np.interp(length, [20, 150], [0, 100])
+                    volBar = np.interp(lengthR, [20, 150], [400, 150])
+                    volPer = np.interp(lengthR, [20, 150], [0, 100])
 
                     # Set system volume
                     volume.SetMasterVolumeLevel(vol, None)
 
                     # Green circle when fingers are closeq1q
-                    if length < 20:
+                    if lengthR < 20:
                         cv2.circle(
                         img,
-                        ((x1 + x2) // 2, (y1 + y2) // 2),
+                        ((xR1 + xR2) // 2, (yR1 + yR2) // 2),
                         10,
                         (0, 255, 0),
                         cv2.FILLED
@@ -199,7 +200,7 @@ while True:
                     # Show distance
                     cv2.putText(
                         img,
-                        f'Distance: {int(length)}',
+                        f'Distance: {int(lengthR)}',
                         (10, 120),
                         cv2.FONT_HERSHEY_PLAIN,
                         2,
@@ -218,6 +219,9 @@ while True:
                     # Quit
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
+                
+        #elif:
+            
 
         else:
             print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
