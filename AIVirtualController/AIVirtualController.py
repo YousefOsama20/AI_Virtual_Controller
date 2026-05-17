@@ -221,11 +221,16 @@ while True:
         fingersLeft = detector.fingersUp(handType="Left")
         fingersRight = detector.fingersUp(handType="Right")
 
+
         #########################################################################################################################################
-        #Volume control with both hands Module
+        # Volume control with both hands Module
+
         if lengthLeft < 30 and lengthRight < 30:
 
-            while lengthLeft < 30:
+            missingFrames = 0
+            maxMissingFrames = 10
+
+            while True:
 
                 success, img = cap.read()
                 img = cv2.flip(img, 1)
@@ -234,71 +239,129 @@ while True:
                     break
 
                 # Detect hands
-                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+                img = detector.findHands(img)
 
-                if len(lmListRight) != 0 and len(lmListLeft) != 0:
-                    # Right Hand                    
+                # Get landmarks
+                lmListRight = detector.findPosition(
+                    img,
+                    handType="Right"
+                )
+
+                lmListLeft = detector.findPosition(
+                    img,
+                    handType="Left"
+                )
+
+                # Keep previous pinch state if hand flickers
+                if len(lmListLeft) != 0:
+
+                    xL1, yL1 = lmListLeft[4][1], lmListLeft[4][2]
+                    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+
+                    lengthLeft = np.hypot(
+                        xL2 - xL1,
+                        yL2 - yL1
+                    )
+
+                    missingFrames = 0
+
+                else:
+                    missingFrames += 1
+
+                # Exit conditions
+                if missingFrames > maxMissingFrames:
+                    print("Left hand lost")
+                    break
+
+                if lengthLeft >= 30:
+                    print("Left pinch released")
+                    break
+
+                # Right hand may disappear temporarily
+                if len(lmListRight) != 0:
+
                     xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
                     xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
 
-                    # Distance between fingers
-                    lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
+                    lengthRight = np.hypot(xR2 - xR1, yR2 - yR1 )
 
-                    #draw Hand Volume Task for both hands
+                    # Draw hand task
                     drawHandVolumeTask(img, xR1, yR1, xR2, yR2)
+
                     drawHandVolumeTask(img, xL1, yL1, xL2, yL2)
 
-                    # Distance between fingers
-                    lengthR = np.hypot(xR2 - xR1, yR2 - yR1)
-                    
-                    volume.SetMasterVolumeLevel(vol, None)
+                    # Map finger distance to volume
+                    vol = np.interp(lengthRight, [20, 150], [minVol, maxVol])
 
-                    vol = np.interp(
-                        lengthRight,
-                        [20, 150],
-                        [minVol, maxVol]
-                    )
+                    volBar = np.interp(lengthRight, [20, 150], [400, 150])
 
-                    volBar = np.interp(lengthR, [20, 150], [400, 150])
-                    volPer = np.interp(lengthR, [20, 150], [0, 100])
+                    volPer = np.interp(lengthRight, [20, 150], [0, 100])
 
                     # Set system volume
                     volume.SetMasterVolumeLevel(vol, None)
 
-                    # Green circle when fingers are closeq1q
-                    if lengthR < 20:
-                        cv2.circle(
-                        img,
-                        ((xR1 + xR2) // 2, (yR1 + yR2) // 2),
-                        10,
-                        (0, 255, 0),
-                        cv2.FILLED
-                    )
-                    print("Left: ", int(lengthLeft), "Right: ", int(lengthRight), 'Volume: ', int(vol))
+                    # Green circle if fingers close
+                    if lengthRight < 20:
 
-                    # Show distance
+                        cv2.circle(img,( 
+                                (xR1 + xR2) // 2,
+                                (yR1 + yR2) // 2
+                            ),
+                            10,
+                            (0, 255, 0),
+                            cv2.FILLED
+                        )
+
+                    print("Left:", int(lengthLeft), "Right:", int(lengthRight), "Volume:", int(vol))
+
+                    # Distance text
                     cv2.putText(
                         img,
-                        f'Distance: {int(lengthR)}',
+                        f'Distance: {int(lengthRight)}',
                         (10, 120),
                         cv2.FONT_HERSHEY_PLAIN,
                         2,
                         (0, 255, 0),
                         2
                     )
-                    cv2.rectangle(img, (50, 150), (85, 400), (0, 255, 0), 3)
-                    cv2.rectangle(img, (50, int(volBar)), (85, 400), (0, 255, 0), cv2.FILLED) 
-                    cv2.putText(img, f'{int(volPer)} %', (40, 450),
-                                cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 3)
 
-                    # Update image and wait
-                    #pTime = FPS(img, pTime)
-                    cv2.imshow("Image", img)
-                    
-                    # Quit
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                    # Volume bar
+                    cv2.rectangle(
+                        img,
+                        (50, 150),
+                        (85, 400),
+                        (0, 255, 0),
+                        3
+                    )
 
+                    cv2.rectangle(
+                        img,
+                        (50, int(volBar)),
+                        (85, 400),
+                        (0, 255, 0),
+                        cv2.FILLED
+                    )
+
+                    cv2.putText(
+                        img,
+                        f'{int(volPer)} %',
+                        (40, 450),
+                        cv2.FONT_HERSHEY_PLAIN,
+                        3,
+                        (0, 255, 0),
+                        3
+                    )
+
+                # FPS
+                pTime = FPS(img, pTime)
+
+                # Show image
+                cv2.imshow("Image", img)
+
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                
         #########################################################################################################################################
         #Hand Number Module
         elif lengthLeft < 30 and fingersRight == detected_fingersRightHandNum: 
@@ -474,64 +537,135 @@ while True:
                     break
             
         #########################################################################################################################################
-        #Virtual Mouse Module
-        
+        # Virtual Mouse Module
         elif lengthLeft < 30 and fingersRight == detected_fingersRightMouse:
-            while lengthLeft < 30:
+
+            missingFrames = 0
+            maxMissingFrames = 10
+
+            while True:
 
                 success, img = cap.read()
                 img = cv2.flip(img, 1)
 
                 if not success:
                     break
-                
-                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
 
-                cv2.rectangle(img, (FramR- 20 ,FramR- 50), (Wcam-FramR, Hcam-FramR), (255, 0, 0), 2)
+                # Detect hands
+                img = detector.findHands(img)
 
+                # Get landmarks
+                lmListRight = detector.findPosition(img, handType="Right")
+                lmListLeft = detector.findPosition(img, handType="Left")
+
+                # ---------------- LEFT HAND CHECK ----------------
+                # Keep previous length if left hand disappears briefly
+                if len(lmListLeft) != 0:
+
+                    xL1, yL1 = lmListLeft[4][1], lmListLeft[4][2]
+                    xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
+
+                    lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+
+                    missingFrames = 0
+
+                else:
+                    missingFrames += 1
+
+                # Exit conditions
+                if missingFrames > maxMissingFrames:
+                    print("Left hand lost")
+                    break
+
+                if lengthLeft >= 30:
+                    print("Left pinch released")
+                    break
+
+                # Draw active region
+                cv2.rectangle(
+                    img,
+                    (FramR - 20, FramR - 50),
+                    (Wcam - FramR, Hcam - FramR),
+                    (255, 0, 0),
+                    2
+                )
+
+                # ---------------- RIGHT HAND MOUSE CONTROL ----------------
+                # Right hand can disappear without exiting
                 if len(lmListRight) != 0:
-                    xR1, yR1 = lmListRight[8][1], lmListRight[8][2]  
+
+                    xR1, yR1 = lmListRight[8][1], lmListRight[8][2]
                     xR2, yR2 = lmListRight[12][1], lmListRight[12][2]
 
                     fingersRight = detector.fingersUp(handType="Right")
 
-                    #Only Index Finger : Moving Mode
+                    # Move mode (index finger only)
                     if fingersRight[1] == 1 and fingersRight[2] == 0:
 
                         # Convert coordinates
-                        x3 = np.interp(xR1, (FramR- 20, Wcam-FramR), (0, autopy.screen.size()[0]))
-                        y3 = np.interp(yR1, (FramR- 50,  Hcam-FramR), (0, autopy.screen.size()[1]))
+                        x3 = np.interp(
+                            xR1,
+                            (FramR - 20, Wcam - FramR),
+                            (0, autopy.screen.size()[0])
+                        )
 
-                        # Smoothen Values
+                        y3 = np.interp(
+                            yR1,
+                            (FramR - 50, Hcam - FramR),
+                            (0, autopy.screen.size()[1])
+                        )
+
+                        # Smooth movement
                         clocX = plocX + (x3 - plocX) / Smoothening
                         clocY = plocY + (y3 - plocY) / Smoothening
+
                         plocX, plocY = clocX, clocY
-                        #Move Mouse
+
+                        # Move mouse
                         autopy.mouse.move(clocX, clocY)
 
-                        cv2.circle(img, (xR1, yR1), 15, (255, 0, 255), cv2.FILLED)
+                        cv2.circle(
+                            img,
+                            (xR1, yR1),
+                            15,
+                            (255, 0, 255),
+                            cv2.FILLED
+                        )
 
-                        #
+                    # Click mode (index + middle finger)
                     if fingersRight[1] == 1 and fingersRight[2] == 1:
-                        length = np.hypot(xR2 - xR1, yR2 - yR1)
 
-                    #both Fingers up : Click Mode
-                    if fingersRight[1] == 1 and fingersRight[2] == 1:
-                        length ,img , lineInfo = detector.findDistance(8, 12, img, handType="Right")
+                        length, img, lineInfo = detector.findDistance(
+                            8,
+                            12,
+                            img,
+                            handType="Right"
+                        )
+
                         print(int(length))
 
                         if length < 30:
-                            cv2.circle(img, (lineInfo[4], lineInfo[5]), 15, (0, 255, 0), cv2.FILLED)
+
+                            cv2.circle(
+                                img,
+                                (lineInfo[4], lineInfo[5]),
+                                15,
+                                (0, 255, 0),
+                                cv2.FILLED
+                            )
+
                             autopy.mouse.click()
                             cv2.waitKey(30)
 
+                # FPS
+                pTime = FPS(img, pTime)
 
-                    cv2.imshow("Image", img)                  
-                        
-                    # Quit
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                # Show image
+                cv2.imshow("Image", img)
 
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
         elif lengthLeft > 1000:
             while lengthLeft < 30:
 
