@@ -83,12 +83,15 @@ def start (img):
     lmListRight = detector.findPosition(img, handType="Right")
     lmListLeft = detector.findPosition(img, handType="Left")
 
+    # Default values
+    xL1, yL1, xL2, yL2 = 0, 0, 0, 0
+    lengthLeft = 9999  # large value = fingers apart (not pinched)
+
     if len(lmListRight) != 0 and len(lmListLeft) != 0:
         # Left Hand
         xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
         xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
-
-    lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
+        lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
     return img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2
 
@@ -98,19 +101,25 @@ cap = cv2.VideoCapture(0)
 cap.set(3, Wcam)
 cap.set(4, Hcam)
 
+xL1, yL1, xR1, yR1, xL2, yL2, xR2, yR2 = 0, 0, 0, 0, 0, 0, 0, 0
+
 #########################################################################################################################################
+
+#                                    Volume control with both hands Module
 vol = 0
 volBar = 400
 volPer = 0
 
-detected_fingersRight = [0, 1, 1, 1, 1]
 
-#Hand Number Module
 #########################################################################################################################################
+
+#                                           Hand Number Module
+
+detected_fingersRightHandNum = [0, 1, 1, 1, 1]
 folder_path_HandNum = r"F:\Github\AI_Virtual_Controller\Images\FingerNumberImage"
 # Read images
 myList = os.listdir(folder_path_HandNum)
-overlaylist = []
+overlaylistHandNum = []
 
 for imPath in myList:
 
@@ -124,11 +133,50 @@ for imPath in myList:
         
         image = cv2.resize(image, (w // 2, h // 2))
 
-        overlaylist.append(image)
+        overlaylistHandNum.append(image)
 
-tipIds = [4, 8, 12, 16, 20]
+tipIdsHandNum = [4, 8, 12, 16, 20]
 
-totalFingers = 0
+totalFingersHandNum = 0
+
+#########################################################################################################################################
+
+#                                          Virtual Painter Module
+
+detected_fingersRightPainter = [0, 1, 0, 0, 0]
+# Folder path
+folder_path_Painter = r"F:\Github\AI_Virtual_Controller\Images\HeaderVirtualPainter"
+
+# Read images
+myListPainter = os.listdir(folder_path_Painter)
+
+overlaylistPainter = []
+
+for imPath in myListPainter:
+
+    imagePath = os.path.join(folder_path_Painter, imPath)
+
+    image = cv2.imread(imagePath)
+
+    if image is not None:
+
+        # Resize all headers to fit screen width
+        image = cv2.resize(image, (Wcam, 125 // 2))
+
+        overlaylistPainter.append(image)
+
+# First header
+headerPainter = overlaylistPainter[0]
+
+drawColorPainter = None
+
+BrachThicknessPainter = 15
+EraserThicknessPainter = 70
+
+xpPainter, ypPainter = 0, 0
+
+imgCanvasPainter = np.zeros((Hcam, Wcam, 3), np.uint8)
+
 
 #########################################################################################################################################
 
@@ -258,7 +306,7 @@ while True:
 
         #########################################################################################################################################
         #Hand Number Module
-        elif lengthLeft < 30 and fingersRight == detected_fingersRight: 
+        elif lengthLeft < 30 and fingersRight == detected_fingersRightHandNum: 
             while lengthLeft < 30:
 
                 success, img = cap.read()
@@ -273,7 +321,7 @@ while True:
                         Fingers = []
 
                         # Thumb
-                        if lmListRight[tipIds[0]][1] < lmListRight[tipIds[0] - 1][1]:
+                        if lmListRight[tipIdsHandNum[0]][1] < lmListRight[tipIdsHandNum[0] - 1][1]:
                             Fingers.append(1)
                         else:
                             Fingers.append(0)
@@ -281,18 +329,18 @@ while True:
                         #  4 Fingers
                         for id in range(1, 5):
                             
-                            if lmListRight[tipIds[id]][2] < lmListRight[tipIds[id] - 2][2]:
+                            if lmListRight[tipIdsHandNum[id]][2] < lmListRight[tipIdsHandNum[id] - 2][2]:
 
                                 Fingers.append(1)
                             else:
                                 Fingers.append(0)
 
-                        totalFingers = Fingers.count(1)
-                        print(totalFingers)
+                        totalFingersHandNum = Fingers.count(1)
+                        print(totalFingersHandNum)
 
                         # Put overlay image
-                if len(overlaylist) > 0 :
-                    overlay = overlaylist[totalFingers ]
+                if len(overlaylistHandNum) > 0 :
+                    overlay = overlaylistHandNum[totalFingersHandNum ]
                     h, w, c = overlay.shape
                     frame_h, frame_w, _ = img.shape
                     img[0:h, frame_w - w:frame_w] = overlay
@@ -304,6 +352,131 @@ while True:
                 # Quit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+
+        #########################################################################################################################################
+        #Virtual Painter Module
+        elif lengthLeft < 30 and fingersRight == detected_fingersRightPainter: 
+            
+            while lengthLeft < 30:
+
+                success, img = cap.read()
+                img = cv2.flip(img, 1)
+
+                if not success:
+                    break
+                
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+                if len(lmListRight) != 0:
+                        
+
+                        xR1,yR1 = lmListRight[8][1], lmListRight[8][2]
+                        xR2,yR2 = lmListRight[12][1], lmListRight[12][2]
+
+                        fingersRight = detector.fingersUp(handType="Right")
+
+                        # Selection mode - Two fingers up
+                        if fingersRight[1] and fingersRight[2]:
+
+                            xpPainter, ypPainter = 0, 0
+
+                            print("Selection Mode")
+                            cv2.rectangle(
+                                img,
+                                (xR1, yR1 - 25),
+                                (xR2, yR2 + 25),
+                                drawColorPainter,
+                                cv2.FILLED
+                            )
+
+                            headerPainter = overlaylistPainter[0]
+
+                            if yR1 < 125 // 2:
+                                if 200 // 2 < xR1 < 350 // 2:
+                                    headerPainter = overlaylistPainter[1]
+                                    drawColorPainter = (0, 0, 255)
+                                elif 500 // 2 < xR1 < 650 // 2:
+                                    headerPainter = overlaylistPainter[2]
+                                    drawColorPainter=(255, 0, 0)
+
+                                elif 800 // 2 < xR1 < 950 // 2:
+                                    headerPainter = overlaylistPainter[3]
+                                    drawColorPainter=(0, 255, 0)
+
+                                elif 1050 // 2 < xR1 < 1200 // 2:  
+                                    headerPainter = overlaylistPainter[4]
+                                    drawColorPainter=(0, 0, 0)
+
+                        if fingersRight[1] and not fingersRight[2]:
+                            print("Drawing Mode")
+                            cv2.circle(
+                                img,
+                                (xR1, yR1),
+                                15,
+                                drawColorPainter,
+                                cv2.FILLED
+                            )
+                            if xpPainter == 0 and ypPainter == 0:
+                                xpPainter, ypPainter = xR1, yR1
+
+                            print("xR1:", xR1, "yR1:", yR1)
+
+                            if drawColorPainter == (0, 0, 0):
+                                
+                                cv2.line(
+                                img,
+                                (xpPainter, ypPainter),
+                                (xR1, yR1),
+                                drawColorPainter,
+                                EraserThicknessPainter
+                                )
+
+                                cv2.line(
+                                    imgCanvasPainter,
+                                    (xpPainter, ypPainter),
+                                    (xR1, yR1),
+                                    drawColorPainter,
+                                    EraserThicknessPainter
+                                )
+
+                            else:
+                            
+                                cv2.line(
+                                    img,
+                                    (xpPainter, ypPainter),
+                                    (xR1, yR1),
+                                    drawColorPainter,
+                                    BrachThicknessPainter
+                                )
+                                
+                                cv2.line(
+                                    imgCanvasPainter,
+                                    (xpPainter, ypPainter),
+                                    (xR1, yR1),
+                                    drawColorPainter,
+                                    BrachThicknessPainter
+                                )
+
+                            xpPainter, ypPainter = xR1, yR1
+
+                    
+                imgGray = cv2.cvtColor(imgCanvasPainter, cv2.COLOR_BGR2GRAY)
+                _, imgInv = cv2.threshold(imgGray, 50, 255, cv2.THRESH_BINARY_INV)
+                imgInv = cv2.cvtColor(imgInv,cv2.COLOR_GRAY2BGR)
+                img = cv2.bitwise_and(img,imgInv)
+                img = cv2.bitwise_or(img,imgCanvasPainter)
+
+                # Put header on top
+                h_header, w_header = headerPainter.shape[:2]
+                img[0:h_header, 0:w_header] = headerPainter
+
+
+
+                cv2.imshow("Image", img)                  
+            
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
 
         elif lengthLeft > 1000:
             while lengthLeft < 30:
