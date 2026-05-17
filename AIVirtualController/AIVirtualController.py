@@ -75,26 +75,23 @@ def drawHandVolumeTask(img, x1, y1, x2, y2):
     cv2.circle(img, (cx, cy), 10,
                 (255, 0, 0), cv2.FILLED)
 
-def start (img):
+def start(img):
 
     img = detector.findHands(img)
 
-    # Find positions for both hands
     lmListRight = detector.findPosition(img, handType="Right")
     lmListLeft = detector.findPosition(img, handType="Left")
 
     # Default values
     xL1, yL1, xL2, yL2 = 0, 0, 0, 0
-    lengthLeft = 9999  # large value = fingers apart (not pinched)
+    lengthLeft = None       
 
     if len(lmListLeft) != 0:
-        # Left Hand
         xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
         xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
         lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
     return img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2
-
 # Webcam
 cap = cv2.VideoCapture(0)
 
@@ -180,6 +177,15 @@ imgCanvasPainter = np.zeros((Hcam, Wcam, 3), np.uint8)
 
 #########################################################################################################################################
 
+#                                            Virtual Mouse Module
+detected_fingersRightMouse = [1, 1, 0, 0, 0]
+
+FramR = 100 # Frame Reductions
+Smoothening = 3
+plocX, plocY = 0, 0
+clocX, clocY = 0, 0
+
+#########################################################################################################################################
 while True:
 
     success, img = cap.read()
@@ -355,6 +361,7 @@ while True:
                     break
                 
                 img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+                
                 if len(lmListRight) != 0:
                         
 
@@ -466,6 +473,64 @@ while True:
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             
+        #########################################################################################################################################
+        #Virtual Mouse Module
+        
+        elif lengthLeft < 30 and fingersRight == detected_fingersRightMouse:
+            while lengthLeft < 30:
+
+                success, img = cap.read()
+                img = cv2.flip(img, 1)
+
+                if not success:
+                    break
+                
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+
+                cv2.rectangle(img, (FramR- 20 ,FramR- 50), (Wcam-FramR, Hcam-FramR), (255, 0, 0), 2)
+
+                if len(lmListRight) != 0:
+                    xR1, yR1 = lmListRight[8][1], lmListRight[8][2]  
+                    xR2, yR2 = lmListRight[12][1], lmListRight[12][2]
+
+                    fingersRight = detector.fingersUp(handType="Right")
+
+                    #Only Index Finger : Moving Mode
+                    if fingersRight[1] == 1 and fingersRight[2] == 0:
+
+                        # Convert coordinates
+                        x3 = np.interp(xR1, (FramR- 20, Wcam-FramR), (0, autopy.screen.size()[0]))
+                        y3 = np.interp(yR1, (FramR- 50,  Hcam-FramR), (0, autopy.screen.size()[1]))
+
+                        # Smoothen Values
+                        clocX = plocX + (x3 - plocX) / Smoothening
+                        clocY = plocY + (y3 - plocY) / Smoothening
+                        plocX, plocY = clocX, clocY
+                        #Move Mouse
+                        autopy.mouse.move(clocX, clocY)
+
+                        cv2.circle(img, (xR1, yR1), 15, (255, 0, 255), cv2.FILLED)
+
+                        #
+                    if fingersRight[1] == 1 and fingersRight[2] == 1:
+                        length = np.hypot(xR2 - xR1, yR2 - yR1)
+
+                    #both Fingers up : Click Mode
+                    if fingersRight[1] == 1 and fingersRight[2] == 1:
+                        length ,img , lineInfo = detector.findDistance(8, 12, img, handType="Right")
+                        print(int(length))
+
+                        if length < 30:
+                            cv2.circle(img, (lineInfo[4], lineInfo[5]), 15, (0, 255, 0), cv2.FILLED)
+                            autopy.mouse.click()
+                            cv2.waitKey(30)
+
+
+                    cv2.imshow("Image", img)                  
+                        
+                    # Quit
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
 
         elif lengthLeft > 1000:
             while lengthLeft < 30:
