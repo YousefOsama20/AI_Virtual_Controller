@@ -87,7 +87,7 @@ def start (img):
     xL1, yL1, xL2, yL2 = 0, 0, 0, 0
     lengthLeft = 9999  # large value = fingers apart (not pinched)
 
-    if len(lmListRight) != 0 and len(lmListLeft) != 0:
+    if len(lmListLeft) != 0:
         # Left Hand
         xL1 , yL1 = lmListLeft[4][1], lmListLeft[4][2]
         xL2, yL2 = lmListLeft[8][1], lmListLeft[8][2]
@@ -198,16 +198,6 @@ while True:
     # Get which hands are currently detected
     detectedHands = detector.getDetectedHands()
 
-    # --- Right Hand ---
-    if len(lmListRight) != 0:
-        fingersRight = detector.fingersUp(handType="Right")
-        #print(f"Right: {fingersRight}")
-
-    # --- Left Hand ---
-    if len(lmListLeft) != 0:
-        fingersLeft = detector.fingersUp(handType="Left")
-        #print(f"Left:  {fingersLeft}")
-
 
     if len(lmListRight) != 0 and len(lmListLeft) != 0:
         # Right Hand
@@ -222,7 +212,8 @@ while True:
         lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
         lengthLeft = np.hypot(xL2 - xL1, yL2 - yL1)
 
-        #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
+        fingersLeft = detector.fingersUp(handType="Left")
+        fingersRight = detector.fingersUp(handType="Right")
 
         #########################################################################################################################################
         #Volume control with both hands Module
@@ -254,7 +245,6 @@ while True:
                     # Distance between fingers
                     lengthR = np.hypot(xR2 - xR1, yR2 - yR1)
                     
-
                     volume.SetMasterVolumeLevel(vol, None)
 
                     vol = np.interp(
@@ -279,7 +269,6 @@ while True:
                         cv2.FILLED
                     )
                     print("Left: ", int(lengthLeft), "Right: ", int(lengthRight), 'Volume: ', int(vol))
-
 
                     # Show distance
                     cv2.putText(
