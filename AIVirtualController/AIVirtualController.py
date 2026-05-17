@@ -6,6 +6,11 @@ import cv2
 import time
 import numpy as np
 import autopy
+#library screenshot
+import pyautogui
+from datetime import datetime
+
+# my library
 from Lib import library
 
 from ctypes import cast, POINTER
@@ -101,7 +106,6 @@ cap.set(4, Hcam)
 xL1, yL1, xR1, yR1, xL2, yL2, xR2, yR2 = 0, 0, 0, 0, 0, 0, 0, 0
 
 #########################################################################################################################################
-
 #                                    Volume control with both hands Module
 vol = 0
 volBar = 400
@@ -186,6 +190,87 @@ plocX, plocY = 0, 0
 clocX, clocY = 0, 0
 
 #########################################################################################################################################
+#                                            Screenshot Module
+
+detected_fingersLeftScreenshot = [1, 1, 0, 0, 0]
+
+# Screenshot folder path (relative to the project root)
+screenshot_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Screenshots")
+
+# Cooldown variables to prevent rapid-fire screenshots
+screenshot_cooldown = 2  # seconds between allowed screenshots
+last_screenshot_time = 0
+screenshot_message = ""  # text to overlay on camera feed
+screenshot_message_time = 0  # when the message was set
+screenshot_message_duration = 1.5  # how long the message stays visible (seconds)
+
+
+def take_screenshot():
+    """Take a screenshot, save it with a timestamped filename, and return the result path or None on failure."""
+    global last_screenshot_time, screenshot_message, screenshot_message_time
+
+    # --- Cooldown check ---
+    now = time.time()
+    if now - last_screenshot_time < screenshot_cooldown:
+        return None  # still in cooldown, skip
+
+    try:
+        # Ensure the folder exists
+        os.makedirs(screenshot_folder, exist_ok=True)
+
+        # Build a unique filename using current date/time
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"screenshot_{timestamp}.png"
+        filepath = os.path.join(screenshot_folder, filename)
+
+        # Capture the screen
+        screenshot_img = pyautogui.screenshot()
+        screenshot_img.save(filepath)
+
+        # Update cooldown timer
+        last_screenshot_time = now
+
+        # Set the visual confirmation message
+        screenshot_message = "Screenshot Saved!"
+        screenshot_message_time = now
+
+        print(f"[Screenshot] Saved to {filepath}")
+        return filepath
+
+    except PermissionError:
+        screenshot_message = "Error: Permission Denied"
+        screenshot_message_time = time.time()
+        print("[Screenshot] Error: Permission denied when saving screenshot.")
+        return None
+    except Exception as e:
+        screenshot_message = "Error: Save Failed"
+        screenshot_message_time = time.time()
+        print(f"[Screenshot] Unexpected error: {e}")
+        return None
+
+
+def draw_screenshot_message(img):
+    """Draw the screenshot confirmation / error message on the frame if still within display duration."""
+    global screenshot_message
+    if screenshot_message and (time.time() - screenshot_message_time < screenshot_message_duration):
+        # Semi-transparent dark banner
+        overlay = img.copy()
+        cv2.rectangle(overlay, (0, img.shape[0] - 60), (img.shape[1], img.shape[0]), (0, 0, 0), cv2.FILLED)
+        cv2.addWeighted(overlay, 0.5, img, 0.5, 0, img)
+        # Text
+        cv2.putText(
+            img,
+            screenshot_message,
+            (10, img.shape[0] - 20),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0) if "Saved" in screenshot_message else (0, 0, 255),
+            2
+        )
+    elif screenshot_message:
+        screenshot_message = ""  # clear expired message
+
+#########################################################################################################################################
 while True:
 
     success, img = cap.read()
@@ -224,7 +309,6 @@ while True:
 
         #########################################################################################################################################
         # Volume control with both hands Module
-
         if lengthLeft < 30 and lengthRight < 30:
 
             missingFrames = 0
@@ -666,6 +750,48 @@ while True:
                 # Quit
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+
+        #########################################################################################################################################
+        # Screenshot Module
+        elif fingersLeft == detected_fingersLeftScreenshot and lengthRight < 30:
+            while lengthRight < 30:
+
+                success, img = cap.read()
+                img = cv2.flip(img, 1)
+
+                if not success:
+                    break
+                
+                img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+                # Get landmarks
+                lmListRight = detector.findPosition(img,handType="Right")
+                lmListLeft = detector.findPosition(img,handType="Left")
+
+                fingersRight = detector.fingersUp(handType="Right")
+
+                if len(lmListRight) != 0:
+
+                    xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
+                    xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
+
+                    lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
+
+                    if lengthRight < 30:
+                        # Take screenshot (cooldown is enforced inside)
+                        take_screenshot()
+
+                    
+                # Draw screenshot confirmation message if active
+                draw_screenshot_message(img)
+
+                print("Screenshot Module")
+
+                cv2.imshow("Image", img)                  
+            
+                # Quit
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
         elif lengthLeft > 1000:
             while lengthLeft < 30:
 
