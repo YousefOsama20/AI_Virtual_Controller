@@ -193,6 +193,7 @@ clocX, clocY = 0, 0
 #                                            Screenshot Module
 
 detected_fingersLeftScreenshot = [1, 1, 0, 0, 0]
+detected_fingersRightTakeScreenshot = [0, 1, 0, 0, 0]  # Right hand: only index finger open triggers the capture
 
 # Screenshot folder path (relative to the project root)
 screenshot_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Screenshots")
@@ -763,22 +764,15 @@ while True:
                     break
                 
                 img, lengthLeft, lmListRight, lmListLeft, xL1, yL1, xL2, yL2 = start(img)
+                
                 # Get landmarks
                 lmListRight = detector.findPosition(img,handType="Right")
-                lmListLeft = detector.findPosition(img,handType="Left")
+                fingersLeft = detector.fingersUp(handType="Left")
 
-                fingersRight = detector.fingersUp(handType="Right")
-
-                if len(lmListRight) != 0:
-
-                    xR1, yR1 = lmListRight[4][1], lmListRight[4][2]
-                    xR2, yR2 = lmListRight[8][1], lmListRight[8][2]
-
-                    lengthRight = np.hypot(xR2 - xR1, yR2 - yR1)
-
-                    if lengthRight < 30:
-                        # Take screenshot (cooldown is enforced inside)
-                        take_screenshot()
+                    # Take screenshot only when right hand shows only index finger open
+                if fingersLeft == detected_fingersRightTakeScreenshot:
+                    take_screenshot()
+                    print("Screenshot taken")
 
                     
                 # Draw screenshot confirmation message if active
