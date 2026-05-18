@@ -92,6 +92,11 @@ images/
 !screenshots/
 !screenshots/*.png
 
+# Allow Images folder (used in README and by the application)
+!Images/
+!Images/**/*.png
+!Images/*.png
+
 # ===============================
 
 # Temporary files
