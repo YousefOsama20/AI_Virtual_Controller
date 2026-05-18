@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🖐️ AI Virtual Controller
 
@@ -551,4 +551,3 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 Made with ❤️ and ✋ hand gestures
 
 </div>
-]]>
