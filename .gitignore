@@ -80,22 +80,9 @@ datasets/
 *.onnx
 *.pkl
 
-# Images (optional - if large)
-
-# ===============================
-
-images/
-*.jpg
-*.png
-
 # Allow screenshots for README
 !screenshots/
 !screenshots/*.png
-
-# Allow Images folder (used in README and by the application)
-!Images/
-!Images/**/*.png
-!Images/*.png
 
 # ===============================
 
