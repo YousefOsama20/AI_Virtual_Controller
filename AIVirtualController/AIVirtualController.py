@@ -566,7 +566,7 @@ while True:
                             cv2.circle(
                                 img,
                                 (xR1, yR1),
-                                15,
+                                10,
                                 drawColorPainter,
                                 cv2.FILLED
                             )
