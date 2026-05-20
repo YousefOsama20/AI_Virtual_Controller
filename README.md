@@ -38,9 +38,7 @@ Adjust volume, move the mouse, draw on screen, count fingers, and take screensho
 - [Configuration](#-configuration)
 - [Examples](#-examples)
 - [Known Issues / Limitations](#-known-issues--limitations)
-- [Troubleshooting](#-troubleshooting)
 - [Future Improvements](#-future-improvements)
-- [Contributing](#-contributing)
 - [License](#-license)
 - [Author](#-author)
 
