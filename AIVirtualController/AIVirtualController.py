@@ -47,6 +47,9 @@ maxVol = volRange[1]
 # FPS variable
 pTime = 0
 
+# Active module name (displayed as overlay)
+current_module = "Idle"
+
 def FPS(img, pTime=0):
 
     cTime = time.time()
@@ -312,6 +315,7 @@ while True:
         # Volume control with both hands Module
         if lengthLeft < 30 and lengthRight < 30:
 
+            current_module = "Volume Control"
             missingFrames = 0
             maxMissingFrames = 10
 
@@ -440,6 +444,9 @@ while True:
                 # FPS
                 pTime = FPS(img, pTime)
 
+                # Module name overlay
+                library.displayModuleName(img, current_module)
+
                 # Show image
                 cv2.imshow("Image", img)
 
@@ -449,7 +456,8 @@ while True:
                 
         #########################################################################################################################################
         #Hand Number Module
-        elif lengthLeft < 30 and fingersRight == detected_fingersRightHandNum: 
+        elif lengthLeft < 30 and fingersRight == detected_fingersRightHandNum:
+            current_module = "Hand Number"
             while lengthLeft < 30:
 
                 success, img = cap.read()
@@ -488,7 +496,10 @@ while True:
                     frame_h, frame_w, _ = img.shape
                     img[0:h, frame_w - w:frame_w] = overlay
                         
-                #pTime = FPS(img, pTime)                
+                #pTime = FPS(img, pTime)
+
+                # Module name overlay
+                library.displayModuleName(img, current_module)
 
                 cv2.imshow("Image", img)                  
             
@@ -498,8 +509,8 @@ while True:
 
         #########################################################################################################################################
         #Virtual Painter Module
-        elif lengthLeft < 30 and fingersRight == detected_fingersRightPainter: 
-            
+        elif lengthLeft < 30 and fingersRight == detected_fingersRightPainter:
+            current_module = "Virtual Painter"
             while lengthLeft < 30:
 
                 success, img = cap.read()
@@ -614,6 +625,8 @@ while True:
                 img[0:h_header, 0:w_header] = headerPainter
 
 
+                # Module name overlay
+                library.displayModuleName(img, current_module)
 
                 cv2.imshow("Image", img)                  
             
@@ -624,6 +637,7 @@ while True:
         #########################################################################################################################################
         # Virtual Mouse Module
         elif lengthLeft < 30 and fingersRight == detected_fingersRightMouse:
+            current_module = "Virtual Mouse"
 
             missingFrames = 0
             maxMissingFrames = 10
@@ -745,6 +759,9 @@ while True:
                 # FPS
                 pTime = FPS(img, pTime)
 
+                # Module name overlay
+                library.displayModuleName(img, current_module)
+
                 # Show image
                 cv2.imshow("Image", img)
 
@@ -755,6 +772,7 @@ while True:
         #########################################################################################################################################
         # Screenshot Module
         elif fingersLeft == detected_fingersLeftScreenshot and lengthRight < 30:
+            current_module = "Screenshot"
             while lengthRight < 30:
 
                 success, img = cap.read()
@@ -780,6 +798,9 @@ while True:
 
                 print("Screenshot Module")
 
+                # Module name overlay
+                library.displayModuleName(img, current_module)
+
                 cv2.imshow("Image", img)                  
             
                 # Quit
@@ -799,6 +820,9 @@ while True:
 
                 print("Left: ", int(lengthLeft))
 
+                # Module name overlay
+                library.displayModuleName(img, current_module)
+
                 cv2.imshow("Image", img)                  
             
                 # Quit
@@ -806,12 +830,15 @@ while True:
                     break
 
         else:
-            pass
+            current_module = "Idle"
             #print("Left: ", int(lengthLeft), "Right: ", int(lengthRight))
 
 
 
     pTime = FPS(img, pTime)
+
+    # Module name overlay
+    library.displayModuleName(img, current_module)
 
     # Show image
     cv2.imshow("Image", img)

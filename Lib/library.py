@@ -233,3 +233,69 @@ class HandDetector():
         Returns a list of hand types currently detected (e.g., ["Left"], ["Right"], or ["Left", "Right"]).
         """
         return [hand for hand, lm in self.lmLists.items() if len(lm) > 0]
+
+
+def displayModuleName(img, module_name):
+    """
+    Draw the active module name as a professional overlay on the frame.
+
+    Places a semi-transparent rounded banner at the top-center of the frame
+    with a text shadow for readability. Designed to be lightweight and
+    consistent across all modules.
+
+    Args:
+        img: The OpenCV frame (numpy array, modified in-place).
+        module_name: The name string to display (e.g. "Virtual Mouse").
+    """
+    if not module_name:
+        return
+
+    font = cv2.FONT_HERSHEY_TRIPLEX
+    font_scale = 0.7
+    thickness = 2
+    color = (255, 255, 255)       # white text
+    shadow_color = (0, 0, 0)      # black shadow
+    bg_color = (40, 40, 40)       # dark grey banner
+
+    # Measure text size
+    (text_w, text_h), baseline = cv2.getTextSize(
+        module_name, font, font_scale, thickness
+    )
+
+    frame_h, frame_w = img.shape[:2]
+
+    # Centre the banner horizontally, 8px from the bottom
+    pad_x, pad_y = 16, 10
+    box_w = text_w + pad_x * 2
+    box_h = text_h + pad_y * 2 + baseline
+    x_start = (frame_w - box_w) // 2
+    y_start = frame_h - box_h - 8
+
+    # Semi-transparent background banner
+    overlay = img.copy()
+    cv2.rectangle(
+        overlay,
+        (x_start, y_start),
+        (x_start + box_w, y_start + box_h),
+        bg_color,
+        cv2.FILLED,
+    )
+    cv2.addWeighted(overlay, 0.65, img, 0.35, 0, img)
+
+    # Text position (bottom-left of the text baseline)
+    text_x = x_start + pad_x
+    text_y = y_start + pad_y + text_h
+
+    # Shadow (offset by 1px)
+    cv2.putText(
+        img, module_name,
+        (text_x + 1, text_y + 1),
+        font, font_scale, shadow_color, thickness + 1, cv2.LINE_AA,
+    )
+
+    # Main text
+    cv2.putText(
+        img, module_name,
+        (text_x, text_y),
+        font, font_scale, color, thickness, cv2.LINE_AA,
+    )
