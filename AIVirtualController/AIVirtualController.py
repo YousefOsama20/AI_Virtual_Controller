@@ -265,10 +265,10 @@ def draw_screenshot_message(img):
         cv2.putText(
             img,
             screenshot_message,
-            (10, img.shape[0] - 20),
+            (10, img.shape[0] - 100),
             cv2.FONT_HERSHEY_SIMPLEX,
             1,
-            (0, 255, 0) if "Saved" in screenshot_message else (0, 0, 255),
+            (255, 0, 0) if "Saved" in screenshot_message else (0, 0, 255),
             2
         )
     elif screenshot_message:
